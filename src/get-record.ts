@@ -20,11 +20,12 @@ export default async function getDnsRecord(): Promise<DnsRecord> {
     cloudflareHeaders
   );
   const records = (await recordsResponse.json()) as GetRecordsPayload;
-  const record = records.result.find((r) =>
-    r.name === config.RECORD
-      ? `${config.RECORD}.${config.DOMAIN}`
-      : config.DOMAIN
+  const record = records.result.find(
+    (r) =>
+      r.name ===
+      (config.RECORD ? `${config.RECORD}.${config.DOMAIN}` : config.DOMAIN)
   );
+  console.log("FOund record: ", record);
   if (!record) {
     throw new Error(
       `Cannot find record ${config.RECORD} in zone (domain) ${config.DOMAIN}`
