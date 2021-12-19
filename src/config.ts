@@ -31,6 +31,13 @@ function defaults(key: string, defaultValue: string): string {
   return process.env[key]!;
 }
 
+function defaultsBool(key: string, defaultValue: boolean): boolean {
+  if (process.env[key] === undefined) {
+    return defaultValue;
+  }
+  return process.env[key]! === "true";
+}
+
 const config: Config = {
   CLOUDFLARE_API_TOKEN: defaults(
     "CLOUDFLARE_API_TOKEN",
@@ -38,6 +45,7 @@ const config: Config = {
   ),
   DOMAIN: defaults("DOMAIN", "acme.com"),
   RECORD: defaults("RECORD", "www"),
+  DEBUG: defaultsBool("DEBUG", false),
 };
 
 export default config;

@@ -2,6 +2,7 @@ export interface Config {
   CLOUDFLARE_API_TOKEN: string;
   DOMAIN: string;
   RECORD: string;
+  DEBUG: boolean;
 }
 
 export interface Ids {
