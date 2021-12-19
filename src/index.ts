@@ -45,27 +45,37 @@ async function main() {
 
   setInterval(async () => {
     counter++;
-    if (counter % 10 === 0) {
-      log("Refreshing DNS entry");
-      lastRecord = await getDnsEntry();
-    }
-    const ip = await getPublicIp();
-    if (ip !== lastRecord.content) {
-      log(
-        "🔴 The public IP has changed: " +
-          chalk(ip) +
-          " vs DNS " +
-          chalk(lastRecord.content)
-      );
-      const record = await updateRecords(lastRecord.zone_id, lastRecord.id, ip);
-      log("🟠 The DNS record has been updated to " + chalk.red(record.content));
-      if (config.DEBUG) {
-        console.log("resp: ", record);
+    try {
+      if (counter % 10 === 0) {
+        log("Refreshing DNS entry");
+        lastRecord = await getDnsEntry();
       }
+      const ip = await getPublicIp();
+      if (ip !== lastRecord.content) {
+        log(
+          "🔴 The public IP has changed: " +
+            chalk(ip) +
+            " vs DNS " +
+            chalk(lastRecord.content)
+        );
+        const record = await updateRecords(
+          lastRecord.zone_id,
+          lastRecord.id,
+          ip
+        );
+        log(
+          "🟠 The DNS record has been updated to " + chalk.red(record.content)
+        );
+        if (config.DEBUG) {
+          console.log("resp: ", record);
+        }
 
-      lastRecord = record;
-    } else {
-      log("✅ The current public IP is the same (" + chalk.red(ip) + ")");
+        lastRecord = record;
+      } else {
+        log("✅ The current public IP is the same (" + chalk.red(ip) + ")");
+      }
+    } catch (err) {
+      log("❗️ " + chalk.red("An error occured: ") + err);
     }
   }, config.CHECK_INTERVAL_SEC * 1000);
 }
