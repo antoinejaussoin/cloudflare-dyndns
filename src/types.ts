@@ -3,6 +3,7 @@ export interface Config {
   DOMAIN: string;
   RECORD: string;
   DEBUG: boolean;
+  CHECK_INTERVAL_SEC: number;
 }
 
 export interface Ids {

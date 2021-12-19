@@ -38,6 +38,13 @@ function defaultsBool(key: string, defaultValue: boolean): boolean {
   return process.env[key]! === "true";
 }
 
+function defaultsNumber(key: string, defaultValue: number): number {
+  if (process.env[key] === undefined) {
+    return defaultValue;
+  }
+  return parseInt(process.env[key]!);
+}
+
 const config: Config = {
   CLOUDFLARE_API_TOKEN: defaults(
     "CLOUDFLARE_API_TOKEN",
@@ -46,6 +53,7 @@ const config: Config = {
   DOMAIN: defaults("DOMAIN", "acme.com"),
   RECORD: defaults("RECORD", "www"),
   DEBUG: defaultsBool("DEBUG", false),
+  CHECK_INTERVAL_SEC: defaultsNumber("CHECK_INTERVAL_SEC", 900),
 };
 
 export default config;

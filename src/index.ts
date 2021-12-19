@@ -14,25 +14,41 @@ function log(text: string) {
   console.log(chalk.blue(`[${new Date().toLocaleTimeString()}] `) + text);
 }
 
+async function getDnsEntry() {
+  try {
+    const record = await getDnsRecord();
+    log(
+      "Current DNS IP: " +
+        chalk.green(record.name) +
+        ": " +
+        chalk.red(record.content)
+    );
+    if (config.DEBUG) {
+      console.log("Record: ", record);
+    }
+    return record;
+  } catch (err) {
+    console.log("An error occured: ", err);
+    throw err;
+  }
+}
+
 async function main() {
+  let counter = 0;
   log("Initialization");
   let lastRecord: DnsRecord;
   try {
-    lastRecord = await getDnsRecord();
-    log(
-      "Current DNS IP: " +
-        chalk.green(lastRecord.name) +
-        ": " +
-        chalk.red(lastRecord.content)
-    );
-    if (config.DEBUG) {
-      console.log("Record: ", lastRecord);
-    }
+    lastRecord = await getDnsEntry();
   } catch (err) {
-    console.log("An error occured: ", err);
+    return;
   }
 
   setInterval(async () => {
+    counter++;
+    if (counter % 10 === 0) {
+      log("Refreshing DNS entry");
+      lastRecord = await getDnsEntry();
+    }
     const ip = await getPublicIp();
     if (ip !== lastRecord.content) {
       log(
@@ -51,7 +67,7 @@ async function main() {
     } else {
       log("✅ The current public IP is the same (" + chalk.red(ip) + ")");
     }
-  }, 5000);
+  }, config.CHECK_INTERVAL_SEC * 1000);
 }
 
 main();
