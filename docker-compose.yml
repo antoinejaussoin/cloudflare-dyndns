@@ -1,0 +1,15 @@
+version: '3'
+services:
+  dyndns:
+    image: antoinejaussoin/cloudflare-dyndns:latest
+    environment:
+      CLOUDFLARE_API_TOKEN: XXX
+      DOMAIN: acme.com
+      RECORD: www
+      DEBUG: false
+      CHECK_INTERVAL_SEC: 900
+    restart: unless-stopped
+    logging:
+      driver: 'json-file'
+      options:
+        max-size: '50m'
