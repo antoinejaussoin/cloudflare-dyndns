@@ -93,9 +93,9 @@ async fn update(
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    println!("{}", "----------------------------".yellow());
-    println!("🌍 Cloudflare Dynamic DNS 🔁");
-    println!("{}", "----------------------------".yellow());
+    println!("{}", "---------------------------------".yellow());
+    println!("{}", "🌍 Cloudflare Dynamic DNS v2.0 🔁 ".white());
+    println!("{}", "---------------------------------".yellow());
     println!();
 
     let cfg = Config::from_env();
