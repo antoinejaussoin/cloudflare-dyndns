@@ -9,3 +9,6 @@ run: build
 	--env DEBUG=false \
 	--env CHECK_INTERVAL_SEC=900 \
 	cloudflare-dyndns
+
+test:
+	cargo test

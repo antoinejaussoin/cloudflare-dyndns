@@ -1,25 +1,22 @@
 # Cloudflare DynDNS
 
-## What is it?
+A small Rust binary (packaged as a Docker image) that updates a Cloudflare DNS A record to the public IP of the host it runs on.
 
-A docker image that updates a specific DNS entry on Cloudflare to the public IP of the system it's running on.
-
-This is useful to update a DNS entry when your system has a dynamic IP (usually when using a regular internet connection).
+Useful when your system has a dynamic IP (typical home / ISP connection).
 
 ## How to use
 
 ### Docker-compose
 
-Copy paste the `docker-compose.yml` file and update the relevant environement variables:
-- **CLOUDFLARE_API_TOKEN**: Your token from Cloudflare. You can get it [here](https://dash.cloudflare.com/profile/api-tokens).
-- **DOMAIN**: The domain name, also known as the Zone, for example: `acme.com`.
-- **RECORD**: The DNS record, without the domain, for example `www`. For the root, use an empty string. 
-- **CHECK_INTERVAL_SEC**: The interval, in seconds, between checking that your IP did not change. Defaults to `900` (15 min).
-- **DEBUG**: Set to true to get additional logging in the console.
+Copy the `docker-compose.yml` file and set the environment variables:
+
+- **CLOUDFLARE_API_TOKEN**: Your token from Cloudflare. You can create one [here](https://dash.cloudflare.com/profile/api-tokens).
+- **DOMAIN**: The domain name (zone), for example: `acme.com`.
+- **RECORD**: The DNS record label without the domain, for example `www`. For the root record, use an empty string.
+- **CHECK_INTERVAL_SEC**: Seconds between IP checks. Defaults to `900` (15 min).
+- **DEBUG**: Set to `true` for extra logging.
 
 ### Docker
-
-Run:
 
 ```
 docker run \
@@ -30,3 +27,5 @@ docker run \
 --env CHECK_INTERVAL_SEC=900 \
 antoinejaussoin/cloudflare-dyndns:latest
 ```
+
+Image tags: `latest` and the semver from `Cargo.toml` (currently `2.0.0`).
