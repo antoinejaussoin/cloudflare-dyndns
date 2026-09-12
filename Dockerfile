@@ -1,18 +1,29 @@
-# This must be run with the Docker context set to the root folder of the repository
-# (the one with the yarn.lock file)
+# Multi-stage build for cloudflare-dyndns (Rust)
+# Context: repository root (contains Cargo.toml / Cargo.lock)
 
-FROM node:16-alpine
+FROM rust:1-alpine AS builder
 
-# App directory
-WORKDIR /usr/src
+RUN apk add --no-cache musl-dev
 
-ENV NODE_ENV production
+WORKDIR /app
 
-COPY ./package.json ./package.json
-RUN yarn --network-timeout 1000000 install
+# Cache dependencies
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo 'fn main() {}' > src/main.rs \
+    && cargo build --release \
+    && rm -rf src
 
-COPY . .
-RUN yarn build
+COPY src ./src
+# Touch so cargo rebuilds the binary after replacing the stub
+RUN touch src/main.rs && cargo build --release
 
-EXPOSE ${BACKEND_PORT}
-CMD [ "yarn", "prod" ]
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates \
+    && adduser -D -H -u 1000 dyndns
+
+COPY --from=builder /app/target/release/cloudflare-dyndns /usr/local/bin/cloudflare-dyndns
+
+USER dyndns
+
+CMD ["cloudflare-dyndns"]
