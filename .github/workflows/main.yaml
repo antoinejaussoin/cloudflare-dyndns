@@ -57,5 +57,5 @@ jobs:
           file: Dockerfile
           context: .
           tags: antoinejaussoin/cloudflare-dyndns:latest,antoinejaussoin/cloudflare-dyndns:${{ steps.version.outputs.current-version }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
