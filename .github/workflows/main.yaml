@@ -4,11 +4,14 @@ on:
   push:
     branches: [main]
 
+env:
+  REGISTRY_IMAGE: antoinejaussoin/cloudflare-dyndns
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -19,43 +22,98 @@ jobs:
       - name: Run tests
         run: cargo test
 
+  # Native amd64 + arm64 in parallel. Compiling Rust under QEMU on a single
+  # x86 runner is an order of magnitude slower than a real ARM host.
   build:
     needs: test
-    runs-on: ubuntu-latest
-
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Platform pair
+        run: echo "PLATFORM_PAIR=$(echo '${{ matrix.platform }}' | tr '/' '-')" >> "$GITHUB_ENV"
+
+      - name: Setup BuildX
+        uses: docker/setup-buildx-action@v4
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push by digest
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile
+          platforms: ${{ matrix.platform }}
+          outputs: type=image,name=${{ env.REGISTRY_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=${{ matrix.platform }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+
+      - name: Export digest
+        run: |
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-${{ env.PLATFORM_PAIR }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
 
       - name: Read VERSION
         id: version
         run: echo "current-version=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)" >> "$GITHUB_OUTPUT"
 
-      - name: Echo VERSION
-        run: echo ${{ steps.version.outputs.current-version }}
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Download digests
+        uses: actions/download-artifact@v4
         with:
-          platforms: all
+          path: ${{ runner.temp }}/digests
+          pattern: digests-*
+          merge-multiple: true
 
       - name: Setup BuildX
-        uses: docker/setup-buildx-action@v3
-        id: buildx
-        with:
-          install: true
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          builder: ${{ steps.buildx.outputs.name }}
-          file: Dockerfile
-          context: .
-          tags: antoinejaussoin/cloudflare-dyndns:latest,antoinejaussoin/cloudflare-dyndns:${{ steps.version.outputs.current-version }}
-          platforms: linux/amd64,linux/arm64
-          push: true
+      - name: Create manifest list and push
+        working-directory: ${{ runner.temp }}/digests
+        env:
+          IMAGE: ${{ env.REGISTRY_IMAGE }}
+          VERSION: ${{ steps.version.outputs.current-version }}
+        run: |
+          docker buildx imagetools create \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:$VERSION" \
+            $(printf "$IMAGE@sha256:%s " *)
+
+      - name: Inspect image
+        env:
+          IMAGE: ${{ env.REGISTRY_IMAGE }}
+          VERSION: ${{ steps.version.outputs.current-version }}
+        run: docker buildx imagetools inspect "$IMAGE:$VERSION"
