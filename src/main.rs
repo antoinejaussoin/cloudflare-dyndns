@@ -94,7 +94,14 @@ async fn update(
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     println!("{}", "---------------------------------".yellow());
-    println!("{}", "🌍 Cloudflare Dynamic DNS v2.0 🔁 ".white());
+    println!(
+        "{}",
+        format!(
+            "🌍 Cloudflare Dynamic DNS v{} 🔁 ",
+            env!("CARGO_PKG_VERSION")
+        )
+        .white()
+    );
     println!("{}", "---------------------------------".yellow());
     println!();
 

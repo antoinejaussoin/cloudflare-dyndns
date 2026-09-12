@@ -28,4 +28,4 @@ docker run \
 antoinejaussoin/cloudflare-dyndns:latest
 ```
 
-Image tags: `latest` and the semver from `Cargo.toml` (currently `2.0.0`).
+Image tags: `latest` and the semver from `Cargo.toml`.

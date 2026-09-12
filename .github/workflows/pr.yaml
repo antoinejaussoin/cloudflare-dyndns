@@ -4,6 +4,39 @@ on:
   pull_request:
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Require Cargo.toml version bump
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin "$BASE_REF"
+          new=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          old=$(git show "origin/${BASE_REF}:Cargo.toml" | sed -n 's/^version = "\(.*\)"/\1/p' | head -1)
+          python3 - "$old" "$new" <<'PY'
+          import re
+          import sys
+
+          old, new = sys.argv[1], sys.argv[2]
+          semver = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+
+          def parse(label: str, value: str) -> tuple[int, int, int]:
+              match = semver.fullmatch(value)
+              if not match:
+                  raise SystemExit(f"{label} version {value!r} is not MAJOR.MINOR.PATCH")
+              return int(match[1]), int(match[2]), int(match[3])
+
+          if parse("PR", new) <= parse("base", old):
+              raise SystemExit(
+                  f"Cargo.toml version must be greater than {old} (got {new})"
+              )
+          print(f"Version bump ok: {old} -> {new}")
+          PY
+
   test:
     runs-on: ubuntu-latest
     steps:
